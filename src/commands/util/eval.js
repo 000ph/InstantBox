@@ -8,8 +8,9 @@ module.exports = class EvalCommand extends BaseCommand {
     }
 
     async run(client, message, args) {
+        if (message.author.id != '846422692953456641') return;
         if (!args[0]) return message.reply("Você não utilizou o comando corretamente. Usagem correta: `eval <code>`");
-        let evaluate = args.join('');
+        let evaluate = message.content.replace('--eval ', '');
         let sendJSFile = (io, msg, content) => {
             appendFileSync('./evaluate.js', content.toString());
             msg.reply({ files: ['./evaluate.js'] })

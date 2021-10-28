@@ -1,6 +1,9 @@
 const guildSchema = require('../../../Schemas/guildSchema');
+const threadSchema = require('../../../Schemas/threadSchema');
+
 const { MessageEmbed } = require('discord.js');
 const BaseCommand = require('../../../Structures/BaseCommand');
+const { Message } = require('discord.js');
 
 module.exports = class OpenTicketCommand extends BaseCommand {
     constructor() {
@@ -11,6 +14,8 @@ module.exports = class OpenTicketCommand extends BaseCommand {
         if (!args[0]) return message.reply("Você precisa especificar o ID de alguma guild! usagem correta: `open <guildID>`");
 
         let mutualGuilds = [];
+
+
         for (let guild of client.guilds.cache.values()) {
             let members = await guild.members.fetch();
 
@@ -23,6 +28,7 @@ module.exports = class OpenTicketCommand extends BaseCommand {
         let guild = mutualGuilds[args[0]] ? mutualGuilds[args[0]].guild : null || mutualGuilds.find(a => a.guild.id === args[0]) ? mutualGuilds.find(a => a.guild.id === args[0]).guild : null;
         if (!guild) return message.reply("Não encontrei essa guild =/")
         let findGuild = await guildSchema.findOne({ _id: guild.id });
+
         if (!findGuild) return message.reply({
             embeds: [
                 new MessageEmbed()
@@ -60,54 +66,12 @@ module.exports = class OpenTicketCommand extends BaseCommand {
                     .setDescription(`Obrigado por entrar em contato com **${guild.name}**. Esperamos que em breve, algum staff irá lhe atender.`)
             ]
         })
-
-        message.channel.isTicket = true;
-        let filter = m => !m.author.bot;
-        let dm = await message.author.createDM();
-        let threadCollector = thread.createMessageCollector({ filter });
-        let authorCollector = dm.createMessageCollector({ filter });
-
-        threadCollector.on('collect', (msg) => {
-            if (msg.content.startsWith('--reply')) {
-                let arg = msg.content.split('--reply')[1];
-                message.author.send(`**Staff:** ${arg}`)
-                msg.delete();
-                thread.send(`**Staff (${msg.author.tag}):** ${arg}`)
-            } else if (msg.content === '--close') {
-                message.author.send({
-                    embeds: [
-                        new MessageEmbed()
-                            .setDescription(`A Thread foi fechada pelos staffs do servidor **${guild.name}**`)
-                    ]
-                })
-                authorCollector.stop()
-                threadCollector.stop();
-                message.channel.isTicket = false;
-
-                thread.send("Fechando a thread em 10 segundos.");
-                setTimeout(() => thread.delete(), 10000)
-            }
+        let Thread = new threadSchema({
+            guildID: findGuild.id,
+            threadID: thread.id,
+            memberID: message.author.id
         })
-        authorCollector.on('collect', (msg) => {
-            if (!msg.content) return;
-            thread.send(`**${msg.author.tag}:** ${msg.content}`).catch(e => {
-                message.author.send({
-                    embeds: [
-                        new MessageEmbed()
-                            .setDescription("O canal foi deletado, logo, a thread foi fechada.")
-                    ]
-                });
-                authorCollector.stop()
-                threadCollector.stop();
-                global.e = e
-                message.channel.isTicket = false;
-
-            });
-            if (!global.e) message.author.send(`Mensagem enviada para ${guild.name}`);
-
-        })
-
-
+        await Thread.save()
 
     }
 }

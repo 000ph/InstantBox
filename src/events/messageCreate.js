@@ -1,15 +1,27 @@
 const { MessageEmbed } = require('discord.js');
-
+const threadSchema = require('../../Schemas/threadSchema')
 
 module.exports = async (client, message) => {
     if (message.author.bot) return;
 
-    if (message.channel.isTicket) return;
 
     let prefix = process.env.PREFIX;
 
     if (message.channel.type === 'DM') {
+        let findMember = await threadSchema.findOne({ memberID: message.author.id });
+        if (findMember) {
+            let thread = client.channels.cache.get(findMember.threadID) || await client.channels.fetch(findMember.threadID);
+            if (!thread) return threadSchema.findOneAndDelete({ memberID: message.author.id });
+            let guild = client.guilds.cache.get(findMember.guildID)
+            thread.send(`**${message.author.tag}:** ${message.content}`)
+            return message.reply({
+                embeds: [
+                    new MessageEmbed()
+                        .setDescription(`Mensagem enviada á **${guild.name}**`)
+                ]
+            })
 
+        }
         if (!message.content.startsWith(prefix)) {
             let mutualGuilds = [];
             for (let guild of client.guilds.cache.values()) {
