@@ -33,3 +33,6 @@ Rode o bot
 $ node .
 ```
 
+
+
+PS: Código legado, só deixei publico á questões de aprendizado. Não darei suporte a possíveis atualizações ou breaking changes das bibliotecas usadas.
